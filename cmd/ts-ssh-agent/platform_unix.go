@@ -12,6 +12,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/anaisbetts/ts-ssh-agent/internal/api"
 )
 
 const systemdUnit = "ts-ssh-agent.service"
@@ -64,7 +66,7 @@ func printAgentEnv(path string, csh, sh bool) {
 
 // startAgentService starts the systemd user unit if one is installed,
 // reporting whether it did so.
-func startAgentService() (bool, error) {
+func startAgentService(serverURL string) (bool, error) {
 	systemctl, err := exec.LookPath("systemctl")
 	if err != nil {
 		return false, nil
@@ -72,10 +74,14 @@ func startAgentService() (bool, error) {
 	if exec.Command(systemctl, "--user", "cat", systemdUnit).Run() != nil {
 		return false, nil
 	}
-	if out, err := exec.Command(systemctl, "--user", "start", systemdUnit).CombinedOutput(); err != nil {
-		return true, fmt.Errorf("systemctl --user start %s: %v: %s", systemdUnit, err, strings.TrimSpace(string(out)))
+
+	// The user manager doesn't inherit the shell's environment.
+	if serverURL != api.DefaultServerURL {
+		if err := runSystemctl(systemctl, "set-environment", "TS_SSH_AGENT_SERVER="+serverURL); err != nil {
+			return true, err
+		}
 	}
-	return true, nil
+	return true, runSystemctl(systemctl, "start", systemdUnit)
 }
 
 func defaultAgentPath() string {
@@ -83,6 +89,14 @@ func defaultAgentPath() string {
 		return filepath.Join(dir, "ts-ssh-agent", "agent.sock")
 	}
 	return filepath.Join(os.TempDir(), fmt.Sprintf("ts-ssh-agent-%d", os.Getuid()), "agent.sock")
+}
+
+func runSystemctl(systemctl string, args ...string) error {
+	out, err := exec.Command(systemctl, append([]string{"--user"}, args...)...).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("systemctl --user %s: %v: %s", strings.Join(args, " "), err, strings.TrimSpace(string(out)))
+	}
+	return nil
 }
 
 func dialAgent(path string) (net.Conn, error) {

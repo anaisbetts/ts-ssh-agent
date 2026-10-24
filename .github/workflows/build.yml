@@ -42,7 +42,13 @@ jobs:
             go build -trimpath -ldflags="-s -w" -o "$out" ./cmd/ts-ssh-agent
             echo "::endgroup::"
           done
-          (cd dist && sha256sum -- * > SHA256SUMS)
+
+      - name: Debian package
+        run: |
+          set -euo pipefail
+          packaging/debian/build-deb.sh "$(packaging/version.sh)" amd64 dist/ts-ssh-agent-linux-amd64 dist
+          dpkg-deb --info dist/*.deb
+          dpkg-deb --contents dist/*.deb
           ls -l dist
 
       - uses: actions/upload-artifact@v7
@@ -52,25 +58,65 @@ jobs:
           if-no-files-found: error
           retention-days: ${{ (github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v')) && (github.event.repository.private && 400 || 90) || 7 }}
 
+  arch:
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - name: Install build tools
+        run: pacman -Syu --noconfirm --needed git go pacman-contrib namcap
+
+      - uses: actions/checkout@v7
+
+      # Releases build from GitHub's tag tarball, exactly like an AUR user
+      # would; other builds substitute a tarball of the checked-out commit.
+      - name: Build package
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          version=$(packaging/version.sh)
+          useradd -m builder
+          work=/home/builder/pkg
+          mkdir -p "$work" dist-arch
+          sed "s/^pkgver=.*/pkgver=$version/" packaging/arch/PKGBUILD > "$work/PKGBUILD"
+          if [ "$GITHUB_EVENT_NAME" != release ]; then
+            git archive --format=tar.gz --prefix="ts-ssh-agent-$version/" -o "$work/ts-ssh-agent-$version.tar.gz" HEAD
+          fi
+          chown -R builder: "$work"
+          (cd "$work" && sudo -u builder updpkgsums && sudo -u builder makepkg --noconfirm)
+          namcap "$work"/PKGBUILD "$work"/*.pkg.tar.zst
+          cp "$work"/*.pkg.tar.zst "$work"/PKGBUILD dist-arch/
+          ls -l dist-arch
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ts-ssh-agent-arch
+          path: dist-arch/*
+          if-no-files-found: error
+          retention-days: ${{ (github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v')) && (github.event.repository.private && 400 || 90) || 7 }}
+
   # Releases are created by a person (UI or `gh release create`); releases made
   # with GITHUB_TOKEN wouldn't trigger the `release` event for the docker job.
   release-binaries:
     if: github.event_name == 'release'
-    needs: build
+    needs: [build, arch]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/download-artifact@v8
         with:
-          name: ts-ssh-agent
+          pattern: ts-ssh-agent*
+          merge-multiple: true
           path: dist
 
-      - name: Attach binaries to release
+      - name: Attach binaries and packages to release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name }}
-        run: gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
+        run: |
+          set -euo pipefail
+          (cd dist && sha256sum -- * > SHA256SUMS)
+          gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
 
   docker:
     needs: build

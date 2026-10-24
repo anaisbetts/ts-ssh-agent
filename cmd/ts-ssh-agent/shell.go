@@ -45,7 +45,7 @@ func ensureAgent(path, serverURL string) error {
 	usedService := false
 	if path == defaultAgentPath() {
 		var err error
-		if usedService, err = startAgentService(); err != nil {
+		if usedService, err = startAgentService(serverURL); err != nil {
 			return err
 		}
 	}

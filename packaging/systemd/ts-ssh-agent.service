@@ -1,0 +1,10 @@
+[Unit]
+Description=ts-ssh-agent SSH agent
+Documentation=https://github.com/anaisbetts/ts-ssh-agent
+
+[Service]
+ExecStart=/usr/bin/ts-ssh-agent agent
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

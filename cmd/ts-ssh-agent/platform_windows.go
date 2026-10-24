@@ -45,7 +45,7 @@ func printAgentEnv(path string, _, _ bool) {
 	}
 }
 
-func startAgentService() (bool, error) {
+func startAgentService(string) (bool, error) {
 	return false, nil
 }
 
