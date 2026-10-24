@@ -67,6 +67,7 @@ jobs:
 
   arch:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - carch: x86_64
@@ -80,8 +81,10 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container: ${{ matrix.image }}
     steps:
+      # Docker on the arm64 runners doesn't permit pacman's Landlock download
+      # sandbox; the container is thrown away after the job anyway.
       - name: Install build tools
-        run: pacman -Syu --noconfirm --needed git go pacman-contrib namcap
+        run: pacman --disable-sandbox -Syu --noconfirm --needed git go pacman-contrib namcap
 
       - uses: actions/checkout@v7
 
