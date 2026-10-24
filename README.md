@@ -131,12 +131,9 @@ Stop-Service ssh-agent; Set-Service ssh-agent -StartupType Disabled   # as admin
 ts-ssh-agent shell | Invoke-Expression                                # in your $PROFILE
 ```
 
-Alternatively, use `-a \\.\pipe\ts-ssh-agent` and set `$env:SSH_AUTH_SOCK` to
-match. Git for Windows' bundled MSYS `ssh` doesn't use Windows named pipes;
-point Git at the system one with `git config --global core.sshCommand C:/Windows/System32/OpenSSH/ssh.exe`.
+### How do I make it run on startup on Windows?
 
-Point clients at a different server with `--server` or `TS_SSH_AGENT_SERVER`
-(default `http://ts-ssh-agent`).
+Ask an agent to install it as a Task Scheduler scheduled task, running as your local user and starting on logon. Tell it to run it via `conhost.exe --headless` so that it doesn't pop up a console window whenever your computer starts
 
 ## Limitations
 
