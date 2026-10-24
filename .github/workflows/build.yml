@@ -104,7 +104,8 @@ jobs:
             git archive --format=tar.gz --prefix="ts-ssh-agent-$version/" -o "$work/ts-ssh-agent-$version.tar.gz" HEAD
           fi
           chown -R builder: "$work"
-          (cd "$work" && sudo -u builder updpkgsums && sudo -u builder makepkg --noconfirm)
+          # Arch Linux ARM's makepkg.conf defaults to xz; match x86_64.
+          (cd "$work" && sudo -u builder updpkgsums && sudo -u builder env PKGEXT=.pkg.tar.zst makepkg --noconfirm)
           pkg=$(ls "$work"/ts-ssh-agent-"$version"-*.pkg.tar.zst)
           namcap "$work"/PKGBUILD "$pkg"
           cp "$pkg" dist-arch/
