@@ -16,6 +16,7 @@ const usage = `usage: ts-ssh-agent <command> [flags]
 Commands:
   server   Run the key server (joins the tailnet via tsnet)
   agent    Run a local SSH agent backed by the key server
+  shell    Start the agent if needed and print SSH_AUTH_SOCK for your shell rc
   add      Upload private keys to the key server (like ssh-add)
   list     List keys stored on the key server (like ssh-add -l / -L)
   remove   Remove keys from the key server (like ssh-add -d / -D)
@@ -27,6 +28,7 @@ Run 'ts-ssh-agent <command> -h' for command flags.
 var commands = map[string]func(args []string) error{
 	"server": runServer,
 	"agent":  runAgent,
+	"shell":  runShell,
 	"add":    runAdd,
 	"list":   runList,
 	"remove": runRemove,
@@ -57,8 +59,12 @@ func main() {
 // serverFlag registers the --server flag shared by all client commands and
 // returns a constructor for a client pointed at it.
 func serverFlag(fs *flag.FlagSet) func() *client.Client {
-	url := fs.String("server", envOr("TS_SSH_AGENT_SERVER", api.DefaultServerURL), "key server URL (env TS_SSH_AGENT_SERVER)")
+	url := serverURLFlag(fs)
 	return func() *client.Client { return client.New(*url, nil) }
+}
+
+func serverURLFlag(fs *flag.FlagSet) *string {
+	return fs.String("server", envOr("TS_SSH_AGENT_SERVER", api.DefaultServerURL), "key server URL (env TS_SSH_AGENT_SERVER)")
 }
 
 func envOr(name, fallback string) string {

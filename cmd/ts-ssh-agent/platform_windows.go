@@ -4,9 +4,10 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"os"
+	"syscall"
+	"time"
 
 	"github.com/tailscale/go-winio"
 	"golang.org/x/sys/windows"
@@ -36,16 +37,32 @@ func listenAgent(path string) (net.Listener, error) {
 	return ln, err
 }
 
+// printAgentEnv prints PowerShell syntax. Nothing is needed for the default
+// pipe, since Windows OpenSSH finds it without SSH_AUTH_SOCK.
 func printAgentEnv(path string, _, _ bool) {
-	if path == openSSHAgentPipe {
-		log.Printf("using the default Windows OpenSSH agent pipe; SSH_AUTH_SOCK does not need to be set")
-		return
+	if path != openSSHAgentPipe {
+		fmt.Printf("$env:SSH_AUTH_SOCK = '%s'\n", path)
 	}
-	fmt.Printf("$env:SSH_AUTH_SOCK = '%s'\n", path)
+}
+
+func startAgentService() (bool, error) {
+	return false, nil
 }
 
 func defaultAgentPath() string {
 	return openSSHAgentPipe
+}
+
+func dialAgent(path string) (net.Conn, error) {
+	timeout := time.Second
+	return winio.DialPipe(path, &timeout)
+}
+
+func detachedProcAttr() *syscall.SysProcAttr {
+	return &syscall.SysProcAttr{
+		CreationFlags: windows.DETACHED_PROCESS | windows.CREATE_NEW_PROCESS_GROUP,
+		HideWindow:    true,
+	}
 }
 
 // openTerminal returns the console for prompting and reading, even when

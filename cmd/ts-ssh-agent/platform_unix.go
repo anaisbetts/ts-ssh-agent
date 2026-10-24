@@ -7,10 +7,14 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 )
+
+const systemdUnit = "ts-ssh-agent.service"
 
 func listenAgent(path string) (net.Listener, error) {
 	dir := filepath.Dir(path)
@@ -28,7 +32,7 @@ func listenAgent(path string) (net.Listener, error) {
 	}
 
 	if _, err := os.Stat(path); err == nil {
-		if conn, err := net.Dial("unix", path); err == nil {
+		if conn, err := dialAgent(path); err == nil {
 			conn.Close()
 			return nil, fmt.Errorf("an agent is already listening on %s", path)
 		}
@@ -58,11 +62,35 @@ func printAgentEnv(path string, csh, sh bool) {
 	}
 }
 
+// startAgentService starts the systemd user unit if one is installed,
+// reporting whether it did so.
+func startAgentService() (bool, error) {
+	systemctl, err := exec.LookPath("systemctl")
+	if err != nil {
+		return false, nil
+	}
+	if exec.Command(systemctl, "--user", "cat", systemdUnit).Run() != nil {
+		return false, nil
+	}
+	if out, err := exec.Command(systemctl, "--user", "start", systemdUnit).CombinedOutput(); err != nil {
+		return true, fmt.Errorf("systemctl --user start %s: %v: %s", systemdUnit, err, strings.TrimSpace(string(out)))
+	}
+	return true, nil
+}
+
 func defaultAgentPath() string {
 	if dir := os.Getenv("XDG_RUNTIME_DIR"); dir != "" {
 		return filepath.Join(dir, "ts-ssh-agent", "agent.sock")
 	}
 	return filepath.Join(os.TempDir(), fmt.Sprintf("ts-ssh-agent-%d", os.Getuid()), "agent.sock")
+}
+
+func dialAgent(path string) (net.Conn, error) {
+	return net.DialTimeout("unix", path, time.Second)
+}
+
+func detachedProcAttr() *syscall.SysProcAttr {
+	return &syscall.SysProcAttr{Setsid: true}
 }
 
 // openTerminal returns the controlling terminal for both prompting and

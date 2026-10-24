@@ -41,21 +41,31 @@ Restrict who can reach it with your tailnet policy as well, e.g. only allow
 
 The client machine must be on the tailnet (regular Tailscale install).
 
-Run the agent in the background (a systemd user unit is easiest):
+Add this to your shell rc. It starts the agent if it isn't already running and
+sets `SSH_AUTH_SOCK`:
+
+```sh
+eval "$(ts-ssh-agent shell)"
+```
+
+If a `ts-ssh-agent` systemd user unit is installed, `shell` starts that
+instead of spawning its own background agent (which logs to
+`~/.cache/ts-ssh-agent/agent.log`):
 
 ```ini
 # ~/.config/systemd/user/ts-ssh-agent.service
 [Service]
 ExecStart=%h/go/bin/ts-ssh-agent agent
+Restart=on-failure
 
 [Install]
 WantedBy=default.target
 ```
 
-```sh
-systemctl --user enable --now ts-ssh-agent
-export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/ts-ssh-agent/agent.sock"   # in your shell rc
+The agent doesn't need Tailscale to be up when it starts; it only reaches the
+key server when ssh asks it for something.
 
+```sh
 ts-ssh-agent whoami                # check the server recognizes you
 ts-ssh-agent add ~/.ssh/id_ed25519 # upload a key (or plain `ssh-add`, it works too)
 ts-ssh-agent list                  # like ssh-add -l; -L for public keys
@@ -71,7 +81,7 @@ Windows' own agent service holds that pipe if it's running, so disable it first:
 
 ```powershell
 Stop-Service ssh-agent; Set-Service ssh-agent -StartupType Disabled   # as admin
-ts-ssh-agent agent
+ts-ssh-agent shell | Invoke-Expression                                # in your $PROFILE
 ```
 
 Alternatively, use `-a \\.\pipe\ts-ssh-agent` and set `$env:SSH_AUTH_SOCK` to
