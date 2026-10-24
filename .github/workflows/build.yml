@@ -110,6 +110,8 @@ jobs:
       - name: Build and push
         id: push
         uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_RECORD_RETENTION_DAYS: ${{ github.event_name == 'release' && 90 || 7 }}
         with:
           context: .
           push: true
