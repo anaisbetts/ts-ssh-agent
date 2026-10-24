@@ -13,6 +13,49 @@ ssh / git / ssh-add ──unix socket──> ts-ssh-agent agent ──tailnet HT
 Private keys never leave the server once uploaded; clients only ever get
 public keys and signatures back.
 
+## Quick Start
+
+You need [Tailscale](https://tailscale.com/download) on every machine you'll
+ssh *from*. Grab a package or binary from the
+[releases page](https://github.com/anaisbetts/ts-ssh-agent/releases).
+
+**1. Run the key server** on an always-on machine. Either install the package
+and let it walk you through adding the server to your tailnet:
+
+```sh
+sudo apt install ./ts-ssh-agent_*_amd64.deb      # or: sudo pacman -U ts-ssh-agent-*.pkg.tar.zst
+ts-ssh-agent server-setup
+```
+
+or use Docker, then open the login link it prints:
+
+```sh
+docker run -d --name ts-ssh-agent --restart unless-stopped \
+  -v ts-ssh-agent:/var/lib/ts-ssh-agent ghcr.io/anaisbetts/ts-ssh-agent:latest
+docker logs -f ts-ssh-agent
+```
+
+**2. On each machine you ssh from**, install the package (or put the binary on
+your `PATH`) and add this to your shell rc:
+
+```sh
+eval "$(ts-ssh-agent shell)"
+```
+
+**3. Upload your keys** once, from any of those machines:
+
+```sh
+ts-ssh-agent whoami    # should print your Tailscale login
+ts-ssh-agent add       # uploads ~/.ssh/id_ed25519 etc.; or name key files
+ssh-add -l             # the keys now come from the server
+```
+
+Every machine where you're logged in to Tailscale as yourself can now use the
+keys. Once they're uploaded you can delete the local copies, but keep a backup
+somewhere safe: if you lose the server's state, the keys are gone.
+
+On Windows, see [Windows](#windows) below.
+
 ## Server
 
 ```sh
@@ -37,16 +80,24 @@ to `main`.
 Restrict who can reach it with your tailnet policy as well, e.g. only allow
 `autogroup:member` to `tag:ssh-agent:80`.
 
+`TS_AUTHKEY` is optional. Without it, the server logs a Tailscale login link
+on first start. If you add the server through that link, the machine belongs
+to you and its Tailscale key expires after 180 days by default. Turn on
+"Disable key expiry" for it in the admin console, or use a tagged auth key
+instead.
+
 ### Without Docker
 
 The `.deb` and Arch packages from the releases page also ship a systemd user
-unit for the server. Put the env vars above in
-`~/.config/ts-ssh-agent/server.env`, then:
+unit for the server. `ts-ssh-agent server-setup` configures and starts it:
 
-```sh
-systemctl --user enable --now ts-ssh-agent-server
-sudo loginctl enable-linger $USER   # keep it running when you're logged out
-```
+- It asks for an optional auth key and store passphrase, and saves them to
+  `~/.config/ts-ssh-agent/server.env`. You can also edit that file by hand
+  using the env vars above.
+- It starts `ts-ssh-agent-server.service` and shows you the Tailscale login
+  link if one is needed.
+- It reminds you to enable lingering, so the server keeps running when you're
+  logged out.
 
 State lives in `~/.local/state/ts-ssh-agent-server`.
 
@@ -61,19 +112,10 @@ sets `SSH_AUTH_SOCK`:
 eval "$(ts-ssh-agent shell)"
 ```
 
-If a `ts-ssh-agent` systemd user unit is installed, `shell` starts that
-instead of spawning its own background agent (which logs to
-`~/.cache/ts-ssh-agent/agent.log`):
-
-```ini
-# ~/.config/systemd/user/ts-ssh-agent.service
-[Service]
-ExecStart=%h/go/bin/ts-ssh-agent agent
-Restart=on-failure
-
-[Install]
-WantedBy=default.target
-```
+The `.deb` and Arch packages ship a `ts-ssh-agent.service` systemd user unit,
+and `shell` starts that when it's installed. Otherwise, for example when you
+use the bare binary or are on macOS, `shell` spawns its own background agent,
+which logs to `~/.cache/ts-ssh-agent/agent.log`.
 
 The agent doesn't need Tailscale to be up when it starts; it only reaches the
 key server when ssh asks it for something.

@@ -5,9 +5,9 @@ ts-ssh-agent ships two systemd user units:
       eval "$(ts-ssh-agent shell)"
 
   ts-ssh-agent-server.service
-    The key server. Put TS_AUTHKEY and TS_SSH_AGENT_STORE_PASSPHRASE in
-    ~/.config/ts-ssh-agent/server.env, then run:
-      systemctl --user enable --now ts-ssh-agent-server
+    The key server. This walks you through setting it up and adding it to
+    your tailnet:
+      ts-ssh-agent server-setup
 
 User services stop when you log out. If you run the key server, enable
 lingering so it keeps running without an active login session:

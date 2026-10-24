@@ -91,14 +91,6 @@ func defaultAgentPath() string {
 	return filepath.Join(os.TempDir(), fmt.Sprintf("ts-ssh-agent-%d", os.Getuid()), "agent.sock")
 }
 
-func runSystemctl(systemctl string, args ...string) error {
-	out, err := exec.Command(systemctl, append([]string{"--user"}, args...)...).CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("systemctl --user %s: %v: %s", strings.Join(args, " "), err, strings.TrimSpace(string(out)))
-	}
-	return nil
-}
-
 func dialAgent(path string) (net.Conn, error) {
 	return net.DialTimeout("unix", path, time.Second)
 }

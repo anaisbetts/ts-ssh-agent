@@ -15,6 +15,8 @@ const usage = `usage: ts-ssh-agent <command> [flags]
 
 Commands:
   server   Run the key server (joins the tailnet via tsnet)
+  server-setup
+           Set up and start the key server as a systemd user service
   agent    Run a local SSH agent backed by the key server
   shell    Start the agent if needed and print SSH_AUTH_SOCK for your shell rc
   add      Upload private keys to the key server (like ssh-add)
@@ -26,13 +28,14 @@ Run 'ts-ssh-agent <command> -h' for command flags.
 `
 
 var commands = map[string]func(args []string) error{
-	"server": runServer,
-	"agent":  runAgent,
-	"shell":  runShell,
-	"add":    runAdd,
-	"list":   runList,
-	"remove": runRemove,
-	"whoami": runWhoAmI,
+	"server":       runServer,
+	"server-setup": runServerSetup,
+	"agent":        runAgent,
+	"shell":        runShell,
+	"add":          runAdd,
+	"list":         runList,
+	"remove":       runRemove,
+	"whoami":       runWhoAmI,
 }
 
 func main() {
