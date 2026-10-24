@@ -1,0 +1,17 @@
+services:
+  ts-ssh-agent:
+    build: .
+    image: ts-ssh-agent
+    restart: unless-stopped
+    environment:
+      # Only needed for the first start; node state is persisted in the volume.
+      TS_AUTHKEY: ${TS_AUTHKEY:-}
+      # Encrypts private keys at rest. Strongly recommended.
+      TS_SSH_AGENT_STORE_PASSPHRASE: ${TS_SSH_AGENT_STORE_PASSPHRASE:-}
+      # Comma-separated Tailscale login names; empty allows any tailnet user.
+      TS_SSH_AGENT_ALLOWED_USERS: ${TS_SSH_AGENT_ALLOWED_USERS:-}
+    volumes:
+      - state:/var/lib/ts-ssh-agent
+
+volumes:
+  state:

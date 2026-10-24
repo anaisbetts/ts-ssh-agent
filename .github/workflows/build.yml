@@ -1,0 +1,66 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Test
+        run: go test ./...
+
+      - name: Cross-compile
+        env:
+          CGO_ENABLED: "0"
+          TARGETS: linux/amd64 windows/amd64 windows/arm64
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          for target in $TARGETS; do
+            export GOOS="${target%/*}" GOARCH="${target#*/}"
+            ext=""; [ "$GOOS" = windows ] && ext=".exe"
+            out="dist/ts-ssh-agent-${GOOS}-${GOARCH}${ext}"
+            echo "::group::$target"
+            go vet ./...
+            go build -trimpath -ldflags="-s -w" -o "$out" ./cmd/ts-ssh-agent
+            echo "::endgroup::"
+          done
+          (cd dist && sha256sum -- * > SHA256SUMS)
+          ls -l dist
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ts-ssh-agent
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: ts-ssh-agent
+          path: dist
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --generate-notes
