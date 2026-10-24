@@ -83,8 +83,9 @@ jobs:
           fi
           chown -R builder: "$work"
           (cd "$work" && sudo -u builder updpkgsums && sudo -u builder makepkg --noconfirm)
-          namcap "$work"/PKGBUILD "$work"/*.pkg.tar.zst
-          cp "$work"/*.pkg.tar.zst "$work"/PKGBUILD dist-arch/
+          pkg=$(ls "$work"/ts-ssh-agent-"$version"-*.pkg.tar.zst)
+          namcap "$work"/PKGBUILD "$pkg"
+          cp "$pkg" "$work"/PKGBUILD dist-arch/
           ls -l dist-arch
 
       - uses: actions/upload-artifact@v7
