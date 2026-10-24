@@ -78,6 +78,7 @@ jobs:
           work=/home/builder/pkg
           mkdir -p "$work" dist-arch
           sed "s/^pkgver=.*/pkgver=$version/" packaging/arch/PKGBUILD > "$work/PKGBUILD"
+          cp packaging/arch/ts-ssh-agent.install "$work/"
           if [ "$GITHUB_EVENT_NAME" != release ]; then
             git archive --format=tar.gz --prefix="ts-ssh-agent-$version/" -o "$work/ts-ssh-agent-$version.tar.gz" HEAD
           fi
@@ -85,7 +86,7 @@ jobs:
           (cd "$work" && sudo -u builder updpkgsums && sudo -u builder makepkg --noconfirm)
           pkg=$(ls "$work"/ts-ssh-agent-"$version"-*.pkg.tar.zst)
           namcap "$work"/PKGBUILD "$pkg"
-          cp "$pkg" "$work"/PKGBUILD dist-arch/
+          cp "$pkg" "$work"/PKGBUILD "$work"/ts-ssh-agent.install dist-arch/
           ls -l dist-arch
 
       - uses: actions/upload-artifact@v7

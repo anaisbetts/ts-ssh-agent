@@ -1,0 +1,17 @@
+[Unit]
+Description=ts-ssh-agent key server
+Documentation=https://github.com/anaisbetts/ts-ssh-agent
+
+[Service]
+# TS_AUTHKEY (first start only), TS_SSH_AGENT_STORE_PASSPHRASE,
+# TS_SSH_AGENT_ALLOWED_USERS, TS_SSH_AGENT_HOSTNAME
+EnvironmentFile=-%E/ts-ssh-agent/server.env
+StateDirectory=ts-ssh-agent-server
+StateDirectoryMode=0700
+ExecStart=/usr/bin/ts-ssh-agent server --state-dir %S/ts-ssh-agent-server
+Restart=on-failure
+UMask=0077
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=default.target

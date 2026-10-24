@@ -37,6 +37,19 @@ to `main`.
 Restrict who can reach it with your tailnet policy as well, e.g. only allow
 `autogroup:member` to `tag:ssh-agent:80`.
 
+### Without Docker
+
+The `.deb` and Arch packages from the releases page also ship a systemd user
+unit for the server. Put the env vars above in
+`~/.config/ts-ssh-agent/server.env`, then:
+
+```sh
+systemctl --user enable --now ts-ssh-agent-server
+sudo loginctl enable-linger $USER   # keep it running when you're logged out
+```
+
+State lives in `~/.local/state/ts-ssh-agent-server`.
+
 ## Client
 
 The client machine must be on the tailnet (regular Tailscale install).

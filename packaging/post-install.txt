@@ -1,0 +1,15 @@
+ts-ssh-agent ships two systemd user units:
+
+  ts-ssh-agent.service
+    The SSH agent. Add this to your shell rc and it's started on demand:
+      eval "$(ts-ssh-agent shell)"
+
+  ts-ssh-agent-server.service
+    The key server. Put TS_AUTHKEY and TS_SSH_AGENT_STORE_PASSPHRASE in
+    ~/.config/ts-ssh-agent/server.env, then run:
+      systemctl --user enable --now ts-ssh-agent-server
+
+User services stop when you log out. If you run the key server, enable
+lingering so it keeps running without an active login session:
+
+  sudo loginctl enable-linger $USER

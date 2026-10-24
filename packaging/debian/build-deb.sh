@@ -21,7 +21,10 @@ trap 'rm -rf "$work"' EXIT
 root="$work/ts-ssh-agent"
 
 install -Dm755 "$binary" "$root/usr/bin/ts-ssh-agent"
-install -Dm644 "$repo/packaging/systemd/ts-ssh-agent.service" "$root/usr/lib/systemd/user/ts-ssh-agent.service"
+install -Dm644 -t "$root/usr/lib/systemd/user" \
+  "$repo/packaging/systemd/ts-ssh-agent.service" \
+  "$repo/packaging/systemd/ts-ssh-agent-server.service"
+install -Dm644 "$repo/packaging/post-install.txt" "$root/usr/share/ts-ssh-agent/post-install.txt"
 install -Dm644 "$repo/README.md" "$root/usr/share/doc/ts-ssh-agent/README.md"
 {
   printf 'Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/\n'
@@ -46,6 +49,16 @@ Description: SSH agent backed by a key server in your tailnet
  ts-ssh-agent keeps SSH private keys on a Tailscale-authenticated server.
  The local agent only ever sees public keys and signatures.
 EOF
+
+# Only on first install ($2 is the previously configured version on upgrades).
+cat > "$root/DEBIAN/postinst" <<'EOF'
+#!/bin/sh
+set -e
+if [ "$1" = configure ] && [ -z "$2" ]; then
+  cat /usr/share/ts-ssh-agent/post-install.txt
+fi
+EOF
+chmod 755 "$root/DEBIAN/postinst"
 
 mkdir -p "$outdir"
 dpkg-deb --root-owner-group -Zxz --build "$root" "$outdir/ts-ssh-agent_${version}_${arch}.deb"
