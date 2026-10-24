@@ -23,6 +23,10 @@ The server joins the tailnet as `ts-ssh-agent` (via `tsnet`, no tailscaled
 needed in the container) and listens on port 80 of its tailnet address only.
 Traffic is encrypted by WireGuard.
 
+Images are published to `ghcr.io/anaisbetts/ts-ssh-agent` for linux/amd64 and
+linux/arm64: `latest` and `vX.Y.Z` for each release, and `main` for every push
+to `main`.
+
 | Env var | Purpose |
 | --- | --- |
 | `TS_AUTHKEY` | Auth key for first login (state persists in the volume afterwards) |
@@ -91,4 +95,6 @@ go build ./cmd/ts-ssh-agent
 ```
 
 CI (`.github/workflows/build.yml`) cross-compiles Linux amd64 and Windows
-amd64/arm64 from one Ubuntu job, and publishes a GitHub release for `v*` tags.
+amd64/arm64 from one Ubuntu job and pushes the `main` image. To release,
+publish a GitHub release (e.g. `gh release create v1.2.3 --generate-notes`);
+CI attaches the binaries and pushes the `v1.2.3` and `latest` images.

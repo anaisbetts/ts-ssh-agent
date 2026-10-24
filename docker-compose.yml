@@ -1,7 +1,6 @@
 services:
   ts-ssh-agent:
-    build: .
-    image: ts-ssh-agent
+    image: ghcr.io/anaisbetts/ts-ssh-agent:latest
     restart: unless-stopped
     environment:
       # Only needed for the first start; node state is persisted in the volume.
