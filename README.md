@@ -164,3 +164,7 @@ and arm64 from one Ubuntu job, builds `.deb` and Arch packages for both, and
 pushes the `main` image. To release,
 publish a GitHub release (e.g. `gh release create v1.2.3 --generate-notes`);
 CI attaches the binaries and pushes the `v1.2.3` and `latest` images.
+
+## Where's macOS?
+
+Mac sucks, dealing with signing and notarization sucks. Building locally will probably work (and will give you an ad-hoc signature for your own machine). If someone wants to volunteer to put this into Homebrew **and maintain it**, drop me a line, I don't use macOS so I can't really test it.
