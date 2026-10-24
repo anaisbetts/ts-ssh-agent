@@ -27,14 +27,6 @@ sudo apt install ./ts-ssh-agent_*_$(dpkg --print-architecture).deb   # or: sudo 
 ts-ssh-agent server-setup
 ```
 
-or use Docker, then open the login link it prints:
-
-```sh
-docker run -d --name ts-ssh-agent --restart unless-stopped \
-  -v ts-ssh-agent:/var/lib/ts-ssh-agent ghcr.io/anaisbetts/ts-ssh-agent:latest
-docker logs -f ts-ssh-agent
-```
-
 **2. On each machine you ssh from**, install the package (or put the binary on
 your `PATH`) and add this to your shell rc:
 
