@@ -11,6 +11,10 @@ import (
 	"github.com/anaisbetts/ts-ssh-agent/internal/client"
 )
 
+// Version is the build version, overridden at link time via
+// -ldflags "-X main.Version=$(version.sh)". Defaults to "dev" for local builds.
+var Version = "dev"
+
 const usage = `usage: ts-ssh-agent <command> [flags]
 
 Commands:
@@ -23,6 +27,7 @@ Commands:
   list     List keys stored on the key server (like ssh-add -l / -L)
   remove   Remove keys from the key server (like ssh-add -d / -D)
   whoami   Show which Tailscale identity the key server sees
+  version  Print the build version (also --version, -V)
 
 Run 'ts-ssh-agent <command> -h' for command flags.
 `
@@ -45,6 +50,10 @@ func main() {
 	}
 	if os.Args[1] == "-h" || os.Args[1] == "--help" || os.Args[1] == "help" {
 		fmt.Print(usage)
+		return
+	}
+	if os.Args[1] == "-V" || os.Args[1] == "-version" || os.Args[1] == "--version" || os.Args[1] == "version" {
+		fmt.Println(Version)
 		return
 	}
 

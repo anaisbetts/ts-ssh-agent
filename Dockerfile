@@ -4,8 +4,11 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
+# Version stamped into the binary (ts-ssh-agent --version). CI passes
+# packaging/version.sh; local builds default to "dev".
+ARG VERSION=dev
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
-    go build -trimpath -ldflags="-s -w" -o /out/ts-ssh-agent ./cmd/ts-ssh-agent \
+    go build -trimpath -ldflags="-s -w -X main.Version=$VERSION" -o /out/ts-ssh-agent ./cmd/ts-ssh-agent \
     && mkdir -p /out/state
 
 FROM gcr.io/distroless/static-debian12:nonroot
