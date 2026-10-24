@@ -23,7 +23,7 @@ ssh *from*. Grab a package or binary from the
 and let it walk you through adding the server to your tailnet:
 
 ```sh
-sudo apt install ./ts-ssh-agent_*_amd64.deb      # or: sudo pacman -U ts-ssh-agent-*.pkg.tar.zst
+sudo apt install ./ts-ssh-agent_*_$(dpkg --print-architecture).deb   # or: sudo pacman -U ts-ssh-agent-*-$(uname -m).pkg.tar.zst
 ts-ssh-agent server-setup
 ```
 
@@ -159,7 +159,8 @@ go test ./...
 go build ./cmd/ts-ssh-agent
 ```
 
-CI (`.github/workflows/build.yml`) cross-compiles Linux amd64 and Windows
-amd64/arm64 from one Ubuntu job and pushes the `main` image. To release,
+CI (`.github/workflows/build.yml`) cross-compiles Linux and Windows for amd64
+and arm64 from one Ubuntu job, builds `.deb` and Arch packages for both, and
+pushes the `main` image. To release,
 publish a GitHub release (e.g. `gh release create v1.2.3 --generate-notes`);
 CI attaches the binaries and pushes the `v1.2.3` and `latest` images.
