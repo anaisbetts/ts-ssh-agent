@@ -3,7 +3,7 @@ Description=ts-ssh-agent SSH agent
 Documentation=https://github.com/anaisbetts/ts-ssh-agent
 
 [Service]
-ExecStart=/usr/bin/ts-ssh-agent agent
+ExecStart=/usr/bin/ts-ssh-agent agent -a %t/ts-ssh-agent/agent.sock
 Restart=on-failure
 
 [Install]

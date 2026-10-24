@@ -53,6 +53,10 @@ func defaultAgentPath() string {
 	return openSSHAgentPipe
 }
 
+func userRuntimeDir() string {
+	return ""
+}
+
 func dialAgent(path string) (net.Conn, error) {
 	timeout := time.Second
 	return winio.DialPipe(path, &timeout)

@@ -71,7 +71,7 @@ func startAgentService(serverURL string) (bool, error) {
 	if err != nil {
 		return false, nil
 	}
-	if exec.Command(systemctl, "--user", "cat", systemdUnit).Run() != nil {
+	if systemctlUser(systemctl, "cat", systemdUnit).Run() != nil {
 		return false, nil
 	}
 
@@ -85,7 +85,7 @@ func startAgentService(serverURL string) (bool, error) {
 }
 
 func defaultAgentPath() string {
-	if dir := os.Getenv("XDG_RUNTIME_DIR"); dir != "" {
+	if dir := userRuntimeDir(); dir != "" {
 		return filepath.Join(dir, "ts-ssh-agent", "agent.sock")
 	}
 	return filepath.Join(os.TempDir(), fmt.Sprintf("ts-ssh-agent-%d", os.Getuid()), "agent.sock")
@@ -104,4 +104,17 @@ func detachedProcAttr() *syscall.SysProcAttr {
 func openTerminal() (in, out *os.File, err error) {
 	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
 	return tty, tty, err
+}
+
+// userRuntimeDir prefers logind's /run/user/<uid>, which is what the systemd
+// user manager always uses, over $XDG_RUNTIME_DIR: SSH, su and tmux sessions
+// often leave the variable unset or pointing somewhere else.
+func userRuntimeDir() string {
+	dir := fmt.Sprintf("/run/user/%d", os.Getuid())
+	if info, err := os.Stat(dir); err == nil && info.IsDir() {
+		if st, ok := info.Sys().(*syscall.Stat_t); ok && int(st.Uid) == os.Getuid() {
+			return dir
+		}
+	}
+	return os.Getenv("XDG_RUNTIME_DIR")
 }

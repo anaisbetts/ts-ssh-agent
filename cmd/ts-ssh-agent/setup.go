@@ -36,7 +36,7 @@ func runServerSetup(args []string) error {
 	if err != nil {
 		return errors.New("server-setup needs systemd; elsewhere, run the server with Docker")
 	}
-	if exec.Command(systemctl, "--user", "cat", serverUnit).Run() != nil {
+	if systemctlUser(systemctl, "cat", serverUnit).Run() != nil {
 		return fmt.Errorf("the %s user unit isn't installed; install the .deb or Arch package first", serverUnit)
 	}
 
@@ -60,7 +60,7 @@ func runServerSetup(args []string) error {
 	if err := runSystemctl(systemctl, "restart", serverUnit); err != nil {
 		return err
 	}
-	out, err := exec.Command(systemctl, "--user", "show", "--property=InvocationID", "--value", serverUnit).Output()
+	out, err := systemctlUser(systemctl, "show", "--property=InvocationID", "--value", serverUnit).Output()
 	if err != nil {
 		return fmt.Errorf("looking up the server's invocation ID: %w", err)
 	}
@@ -170,7 +170,7 @@ func waitForServer(systemctl, invocationID string) (bool, error) {
 				return false, fmt.Errorf("the key server failed: %s; %s", msg, seeLogs)
 			}
 		case <-poll.C:
-			if exec.Command(systemctl, "--user", "is-failed", "--quiet", serverUnit).Run() == nil {
+			if systemctlUser(systemctl, "is-failed", "--quiet", serverUnit).Run() == nil {
 				return false, fmt.Errorf("%s failed to start; %s", serverUnit, seeLogs)
 			}
 		case <-timeout.C:
@@ -199,9 +199,19 @@ func quoteEnvValue(v string) string {
 }
 
 func runSystemctl(systemctl string, args ...string) error {
-	out, err := exec.Command(systemctl, append([]string{"--user"}, args...)...).CombinedOutput()
+	out, err := systemctlUser(systemctl, args...).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("systemctl --user %s: %v: %s", strings.Join(args, " "), err, strings.TrimSpace(string(out)))
 	}
 	return nil
+}
+
+// systemctlUser builds a `systemctl --user` command that can find the user
+// manager even when this session's XDG_RUNTIME_DIR is missing or wrong.
+func systemctlUser(systemctl string, args ...string) *exec.Cmd {
+	cmd := exec.Command(systemctl, append([]string{"--user"}, args...)...)
+	if dir := userRuntimeDir(); dir != "" {
+		cmd.Env = append(os.Environ(), "XDG_RUNTIME_DIR="+dir)
+	}
+	return cmd
 }
